@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <title>Auralytics – Análisis por IA</title>
+  <style>
+    body { font-family: Arial, sans-serif; background: #f1f1f1; padding: 2rem; }
+    h1 { color: #222; }
+    form { background: #fff; padding: 2rem; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); max-width: 600px; margin: auto; }
+    .resultado, .estado, .error { margin-top: 1.5rem; padding: 1rem; border-radius: 5px; }
+    .estado { background: #fff3cd; color: #856404; }
+    .resultado { background: #e2f0d9; color: #155724; white-space: pre-wrap; }
+    .error { background: #f8d7da; color: #721c24; white-space: pre-wrap; }
+  </style>
+</head>
+<body>
+  <h1>Auralytics</h1>
+  <p>Subí tu archivo de audio/video (máx. 25MB) para recibir un informe automático.</p>
+  <form id="uploadForm">
+    <input type="file" id="audioFile" name="file" accept=".mp3,.mp4,.mpeg,.mpga,.m4a,.wav,.webm" required />
+    <button type="button" id="submitBtn">Subir y analizar</button>
+  </form>
+
+  <div id="estado" class="estado" style="display:none;"></div>
+  <div id="resultado" class="resultado" style="display:none;"></div>
+  <div id="error" class="error" style="display:none;"></div>
+
+  <script>
+    document.getElementById('submitBtn').addEventListener('click', async function () {
+      const fileInput = document.getElementById('audioFile');
+      const estado = document.getElementById('estado');
+      const resultado = document.getElementById('resultado');
+      const errorBox = document.getElementById('error');
+
+      const file = fileInput.files[0];
+
+      estado.style.display = 'block';
+      resultado.style.display = 'none';
+      errorBox.style.display = 'none';
+      estado.innerText = '⏳ Procesando archivo...';
+
+      if (!file) {
+        estado.style.display = 'none';
+        errorBox.style.display = 'block';
+        errorBox.innerText = '❗ Por favor seleccioná un archivo.';
+        return;
+      }
+
+      if (file.size > 25 * 1024 * 1024) {
+        estado.style.display = 'none';
+        errorBox.style.display = 'block';
+        errorBox.innerText = '⚠️ El archivo supera los 25MB permitidos por el sistema.';
+        return;
+      }
+
+      const formData = new FormData();
+      formData.append('file', file);
+
+      try {
+        const response = await fetch('https://auralytics-backend-production.up.railway.app/upload', {
+          method: 'POST',
+          body: formData
+        });
+
+        estado.style.display = 'none';
+
+        if (!response.ok) {
+          throw new Error('Error del servidor (código ' + response.status + ')');
+        }
+
+        const data = await response.json();
+        resultado.style.display = 'block';
+        resultado.innerText =
+          '🎙️ Transcripción:\n' + data.transcripcion + '\n\n🧠 Informe:\n' + data.informe;
+      } catch (error) {
+        estado.style.display = 'none';
+        errorBox.style.display = 'block';
+        errorBox.innerText = '❌ Error al procesar el audio:\n' + error.message;
+      }
+    });
+  </script>
+</body>
+</html>
